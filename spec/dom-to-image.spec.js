@@ -359,6 +359,18 @@
                     .then(done).catch(done);
             });
 
+            it('should render SVG use tags', function (done) {
+                loadTestPage('svg-use-tag/dom-node.html', 'svg-use-tag/style.css', 'svg-use-tag/control-image')
+                    .then(function() {
+                        return domtoimage.toPng(domNode(), {
+                            bgcolor: "#ff0000"
+                        });
+                    })
+                    .then(check)
+                    .then(done)
+                    .catch(done);
+            });
+
             function compareToControlImage(image, tolerance) {
                 assert.isTrue(imagediff.equal(image, controlImage(), tolerance), 'rendered and control images should be same');
             }
