@@ -362,7 +362,7 @@
             it('should render SVG use tags', function (done) {
                 loadTestPage('svg-use-tag/dom-node.html', 'svg-use-tag/style.css', 'svg-use-tag/control-image')
                     .then(function() {
-                        return domtoimage.toPng(domNode(), {
+                        return domtoimage.toPng(document.getElementById('root'), {
                             bgcolor: "#ff0000"
                         });
                     })

@@ -62,12 +62,53 @@
             .then(embedFonts)
             .then(inlineImages)
             .then(applyOptions)
+            .then(copySymbolDefs)
             .then(function (clone) {
                 return makeSvgDataUri(clone,
                     options.width || util.width(node),
                     options.height || util.height(node)
                 );
             });
+
+        function copySymbolDefs(clone) {
+            var useElements = clone.querySelectorAll ? clone.querySelectorAll('use') : [];
+
+            if (useElements.length === 0) {
+                return Promise.resolve(clone);
+            }
+
+            var svgDefsEl = document.createElementNS('http://www.w3.org/1999/xhtml', 'svg');
+            svgDefsEl.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+            svgDefsEl.style.position = 'absolute';
+            svgDefsEl.style.width = 0;
+            svgDefsEl.style.height = 0;
+            svgDefsEl.style.overflow = 'hidden';
+            svgDefsEl.style.display = 'none';
+
+            var defsEl = document.createElementNS('http://www.w3.org/1999/xhtml', 'defs');
+            svgDefsEl.appendChild(defsEl);
+
+            var processedDefs = {};
+            for (var i = 0; i < useElements.length; i++) {
+                var useEl = useElements[i];
+                var definition = document.querySelector(useEl.getAttribute('xlink:href'));
+
+                if (definition && !processedDefs[definition.id]) {
+                    processedDefs[definition.id] = cloneNode(definition, options.filter, true);
+                    
+                }
+            }
+
+            return Promise.all(Object.values(processedDefs))
+                .then(function (nodes) {
+                    for (var i = 0; i < nodes.length; i++) {
+                        defsEl.appendChild(nodes[i]);
+                    }
+
+                    clone.appendChild(svgDefsEl);
+                    return clone;
+                });
+        }
 
         function applyOptions(clone) {
             if (options.bgcolor) clone.style.backgroundColor = options.bgcolor;
@@ -231,7 +272,6 @@
                 .then(clonePseudoElements)
                 .then(copyUserInput)
                 .then(fixSvg)
-                .then(copySymbolDefs)
                 .then(function () {
                     return clone;
                 });
@@ -395,37 +435,6 @@
 
                     clone.style.setProperty(attribute, value);
                 });
-            }
-
-            function copySymbolDefs() {
-                var useElements = clone.querySelectorAll('use');
-
-                if (useElements.length === 0) {
-                    return;
-                }
-
-                var svgDefsEl = document.createElementNS('http://www.w3.org/1999/xhtml', 'svg');
-                svgDefsEl.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-                svgDefsEl.style.position = 'absolute';
-                svgDefsEl.style.width = 0;
-                svgDefsEl.style.height = 0;
-                svgDefsEl.style.overflow = 'hidden';
-
-                var defsEl = document.createElementNS('http://www.w3.org/1999/xhtml', 'defs');
-                svgDefsEl.appendChild(defsEl);
-
-                var processedDefs = {};
-                for (var i = 0; i < useElements.length; i++) {
-                    var useEl = useElements[i];
-                    var definition = clone.querySelector(useEl.getAttribute('href'));
-
-                    if (definition && !processedDefs[definition.id]) {
-                        processedDefs[definition.id] = true;
-                        defsEl.appendChild(definition.cloneNode(false));
-                    }
-                }
-
-                clone.appendChild(svgDefsEl);
             }
         }
     }
